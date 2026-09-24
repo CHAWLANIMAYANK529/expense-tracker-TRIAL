@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Something went wrong{% endblock %}
+{% block content %}
+<section class="panel form-panel">
+  <h1>Something went wrong</h1>
+  <p>The last action could not be completed. Please try again.</p>
+  <a class="btn btn-primary" href="{{ url_for('dashboard.index') if current_user else url_for('auth.home') }}">Go back</a>
+</section>
+{% endblock %}

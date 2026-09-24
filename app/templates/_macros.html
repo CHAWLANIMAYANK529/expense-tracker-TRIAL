@@ -1,0 +1,38 @@
+{% macro csrf_field(token) %}
+<input type="hidden" name="csrf_token" value="{{ token }}">
+{% endmacro %}
+
+{% macro budget_panel(budget) %}
+{% if budget.configured %}
+  <div class="budget-panel">
+    <div class="budget-figures">
+      <div>
+        <span class="stat-label">Spent</span>
+        <strong>{{ budget.spent | inr }}</strong>
+      </div>
+      <div>
+        <span class="stat-label">Budget</span>
+        <strong id="budget-amount">{{ budget.amount | inr }}</strong>
+      </div>
+      <div>
+        <span class="stat-label">Remaining</span>
+        <strong id="budget-remaining" class="{{ 'is-negative' if budget.remaining < 0 else '' }}">{{ budget.remaining | inr }}</strong>
+      </div>
+      <div>
+        <span class="stat-label">Used</span>
+        <strong id="budget-percent">{{ budget.percent }}%</strong>
+      </div>
+    </div>
+    <div class="progress budget-progress" role="progressbar" aria-valuenow="{{ budget.bar_width }}" aria-valuemin="0" aria-valuemax="100" aria-label="Monthly budget used">
+      <div class="progress-bar budget-{{ budget.level }}" style="width: {{ budget.bar_width }}%"></div>
+    </div>
+    {% if budget.level == 'warning' %}
+      <div class="alert alert-warning mt-3 mb-0">⚠ {{ budget.message }}</div>
+    {% elif budget.level == 'exceeded' %}
+      <div class="alert alert-danger mt-3 mb-0">🚨 {{ budget.message }}</div>
+    {% endif %}
+  </div>
+{% else %}
+  <p class="empty-copy mb-0">Set a monthly budget to compare it with this month's spending.</p>
+{% endif %}
+{% endmacro %}

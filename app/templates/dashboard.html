@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% from "_macros.html" import budget_panel %}
+{% block title %}Dashboard{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Dashboard</p>
+    <h1>Hello, {{ current_user.name }}</h1>
+    <p class="page-note">This month is {{ month_start | short_date }} – {{ today | short_date }}. Totals are summed from your expenses.</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('expenses.new_expense') }}">Add expense</a>
+</header>
+
+<section class="stat-grid">
+  <article class="stat-card">
+    <p class="stat-label">Total spending</p>
+    <p class="stat-value" id="total-spending">{{ total | inr }}</p>
+    <p class="stat-hint">{{ count }} transaction{{ '' if count == 1 else 's' }}</p>
+  </article>
+  <article class="stat-card">
+    <p class="stat-label">This month</p>
+    <p class="stat-value" id="month-spending">{{ this_month | inr }}</p>
+    <p class="stat-hint">Through today</p>
+  </article>
+  <article class="stat-card">
+    <p class="stat-label">Monthly budget</p>
+    <p class="stat-value">{{ budget.amount | inr if budget.configured else 'Not set' }}</p>
+    <p class="stat-hint"><a href="{{ url_for('budget.index') }}">Edit budget</a></p>
+  </article>
+  <article class="stat-card">
+    <p class="stat-label">Remaining</p>
+    <p class="stat-value">{{ budget.remaining | inr if budget.configured else '—' }}</p>
+    <p class="stat-hint">Budget minus this month</p>
+  </article>
+</section>
+
+<section class="panel mt-4">
+  <div class="panel-head">
+    <h2>Budget progress</h2>
+  </div>
+  {{ budget_panel(budget) }}
+</section>
+
+<section class="panel mt-4">
+  <div class="panel-head">
+    <h2>Charts · {{ chart_label }}</h2>
+    <div class="btn-group btn-group-sm" role="group" aria-label="Chart range">
+      <a class="btn btn-outline-secondary {% if chart_range == 'month' %}active{% endif %}" href="{{ url_for('dashboard.index', range='month') }}">This month</a>
+      <a class="btn btn-outline-secondary {% if chart_range == 'six_months' %}active{% endif %}" href="{{ url_for('dashboard.index', range='six_months') }}">Last 6 months</a>
+      <a class="btn btn-outline-secondary {% if chart_range == 'all' %}active{% endif %}" href="{{ url_for('dashboard.index', range='all') }}">All time</a>
+    </div>
+  </div>
+  <div class="row g-4">
+    <div class="col-lg-5">
+      <h3 class="chart-title">Spending by category</h3>
+      {% if charts.category_values %}
+        <canvas id="categoryChart" height="220" aria-label="Spending by category"></canvas>
+      {% else %}
+        <p class="empty-copy">No spending in this period.</p>
+      {% endif %}
+    </div>
+    <div class="col-lg-7">
+      <h3 class="chart-title">{{ time_heading }}</h3>
+      {% if charts.time_values | sum > 0 %}
+        <canvas id="timeChart" height="220" aria-label="{{ time_heading }}"></canvas>
+      {% else %}
+        <p class="empty-copy">No spending in this period.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="panel mt-4">
+  <div class="panel-head">
+    <h2>Monthly comparison</h2>
+    <p class="page-note mb-0">Last 6 calendar months, including this month through today.</p>
+  </div>
+  {% if charts.month_values | sum > 0 %}
+    <canvas id="monthChart" height="120" aria-label="Monthly comparison"></canvas>
+  {% else %}
+    <p class="empty-copy">No spending in the last 6 months.</p>
+  {% endif %}
+</section>
+
+<div class="row g-4 mt-1">
+  <div class="col-lg-7">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Recent transactions</h2>
+        <a href="{{ url_for('expenses.index') }}">View all</a>
+      </div>
+      {% if recent %}
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr><th>Date</th><th>Description</th><th>Category</th><th class="text-end">Amount</th></tr>
+          </thead>
+          <tbody>
+            {% for expense in recent %}
+            <tr>
+              <td><time datetime="{{ expense.date }}">{{ expense.date | short_date }}</time></td>
+              <td>{{ expense.description }}</td>
+              <td>{{ expense.category }}</td>
+              <td class="text-end amount">{{ expense.amount | inr }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="empty-copy">No expenses yet. <a href="{{ url_for('expenses.new_expense') }}">Add the first one</a>.</p>
+      {% endif %}
+    </section>
+  </div>
+  <div class="col-lg-5">
+    <section class="panel">
+      <div class="panel-head"><h2>Highest expenses</h2></div>
+      {% if highest %}
+        <ol class="rank-list">
+          {% for expense in highest %}
+          <li>
+            <span>{{ expense.description }} <small>{{ expense.category }}</small></span>
+            <strong>{{ expense.amount | inr }}</strong>
+          </li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p class="empty-copy">Highest expenses will show up here.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+
+<div class="row g-4 mt-1">
+  <div class="col-lg-6">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Detected recurring expenses</h2>
+        <a href="{{ url_for('analytics.index') }}">Analytics</a>
+      </div>
+      {% if recurring %}
+        <ul class="insight-list">
+          {% for item in recurring %}
+          <li>
+            <span>{{ item.description }} <small>{{ item.occurrences }} times</small></span>
+            <span class="text-end"><strong>{{ item.amount | inr }}</strong><small>{{ item.label }}</small></span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% if recurring_count > recurring | length %}
+          <p class="page-note">Showing {{ recurring | length }} of {{ recurring_count }}.</p>
+        {% endif %}
+      {% else %}
+        <p class="empty-copy">None yet. This needs the same description, a similar amount, and a regular interval at least three times.</p>
+      {% endif %}
+    </section>
+  </div>
+  <div class="col-lg-6">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Unusual spending</h2>
+        <a href="{{ url_for('analytics.index') }}">How this is calculated</a>
+      </div>
+      {% if unusual %}
+        <ul class="insight-list">
+          {% for item in unusual %}
+          <li>
+            <span>{{ item.category }} <small>{{ 'Higher' if item.direction == 'higher' else 'Lower' }} than your historical average</small></span>
+            <strong>{{ '%+d' | format(item.difference_percent) }}%</strong>
+          </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty-copy">No category is far from your own recent average. This is a comparison, not a judgment.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+<script id="chart-data" type="application/json">{{ charts | tojson }}</script>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const node = document.getElementById("chart-data");
+    if (!node || !window.renderFinanceCharts) return;
+    window.renderFinanceCharts(JSON.parse(node.textContent));
+  });
+</script>
+{% endblock %}

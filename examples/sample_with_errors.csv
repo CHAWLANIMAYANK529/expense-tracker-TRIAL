@@ -1,0 +1,7 @@
+date,description,amount,category
+2026-08-01,Uber,320,Transport
+2026-08-02,Restaurant,850,Food
+2026-08-03,Amazon,1200,Shopping
+not-a-date,Coffee,100,Food
+2026-08-05,Grocery,-20,Food
+2026-08-06,,400,Bills

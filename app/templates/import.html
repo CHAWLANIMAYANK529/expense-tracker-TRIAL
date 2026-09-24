@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf_field %}
+{% block title %}Import CSV{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Import</p>
+    <h1>Import transactions</h1>
+    <p class="page-note">The file is checked before anything is saved. Invalid rows are reported and skipped. Possible duplicates are skipped unless you choose to include them.</p>
+  </div>
+</header>
+<section class="panel form-panel">
+  <form method="post" enctype="multipart/form-data" data-loading>
+    {{ csrf_field(csrf_token) }}
+    <label class="form-label" for="file">CSV file</label>
+    <input class="form-control mb-3" id="file" type="file" name="file" accept=".csv,text/csv" required>
+    <button class="btn btn-primary" type="submit">Preview import</button>
+  </form>
+  <pre class="csv-sample">date,description,amount,category
+2026-08-01,Uber,320,Transport
+2026-08-02,Restaurant,850,Food
+2026-08-03,Amazon,1200,Shopping</pre>
+  <p class="page-note mb-0">Dates can be YYYY-MM-DD or DD/MM/YYYY. Optional columns: payment_method, notes. You can also name the description column title. A sample with errors is in <code>examples/sample_with_errors.csv</code>.</p>
+</section>
+{% endblock %}

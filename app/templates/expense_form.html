@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf_field %}
+{% block title %}{{ 'Edit expense' if mode == 'edit' else 'Add expense' }}{% endblock %}
+{% block content %}
+<section class="panel form-panel">
+  <p class="eyebrow">Expenses</p>
+  <h1>{{ 'Edit expense' if mode == 'edit' else 'Add expense' }}</h1>
+  {% if errors %}
+    <div class="alert alert-danger">
+      {% for error in errors %}<div>{{ error }}</div>{% endfor %}
+    </div>
+  {% endif %}
+  <form method="post" data-loading>
+    {{ csrf_field(csrf_token) }}
+    <label class="form-label" for="description">Description</label>
+    <input class="form-control mb-3" id="description" name="description" value="{{ form.description }}" maxlength="120" required>
+
+    <div class="row">
+      <div class="col-md-6">
+        <label class="form-label" for="amount">Amount (₹)</label>
+        <input class="form-control mb-3" id="amount" name="amount" type="number" min="0.01" step="0.01" value="{{ form.amount }}" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="date">Date</label>
+        <input class="form-control mb-3" id="date" name="date" type="date" value="{{ form.date }}" required>
+      </div>
+    </div>
+
+    <label class="form-label" for="category_id">Category</label>
+    <select class="form-select mb-2" id="category_id" name="category_id">
+      <option value="">Select a category</option>
+      <optgroup label="Built in">
+        {% for category in categories if not category.user_id %}
+          <option value="{{ category.id }}" {% if form.category_id|string == category.id|string %}selected{% endif %}>{{ category.name }}</option>
+        {% endfor %}
+      </optgroup>
+      {% if categories | selectattr('user_id') | list %}
+      <optgroup label="Yours">
+        {% for category in categories if category.user_id %}
+          <option value="{{ category.id }}" {% if form.category_id|string == category.id|string %}selected{% endif %}>{{ category.name }}</option>
+        {% endfor %}
+      </optgroup>
+      {% endif %}
+    </select>
+    <label class="form-label" for="new_category">Or create a category</label>
+    <input class="form-control mb-3" id="new_category" name="new_category" value="{{ form.new_category }}" maxlength="40" placeholder="Leave blank to use the list">
+
+    <label class="form-label" for="payment_method">Payment method</label>
+    <select class="form-select mb-3" id="payment_method" name="payment_method" required>
+      {% for method in payment_methods %}
+        <option value="{{ method }}" {% if form.payment_method == method %}selected{% endif %}>{{ method }}</option>
+      {% endfor %}
+    </select>
+
+    <label class="form-label" for="notes">Notes <span class="field-hint">(optional)</span></label>
+    <textarea class="form-control mb-3" id="notes" name="notes" rows="3" maxlength="300">{{ form.notes }}</textarea>
+
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary" type="submit">{{ 'Save changes' if mode == 'edit' else 'Add expense' }}</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('expenses.index') }}">Cancel</a>
+    </div>
+  </form>
+  {% if mode == 'edit' %}
+  <form class="mt-3" method="post" action="{{ url_for('expenses.delete', expense_id=expense.id) }}" onsubmit="return confirm('Delete this expense?');">
+    {{ csrf_field(csrf_token) }}
+    <button class="btn btn-outline-danger" type="submit">Delete expense</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

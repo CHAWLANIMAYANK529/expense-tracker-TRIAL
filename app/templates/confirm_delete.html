@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf_field %}
+{% block title %}Delete expense{% endblock %}
+{% block content %}
+<section class="panel form-panel">
+  <h1>Delete this expense?</h1>
+  <p>{{ expense.description }} · {{ expense.amount | inr }} · {{ expense.date | short_date }}</p>
+  <form method="post" action="{{ url_for('expenses.delete', expense_id=expense.id) }}">
+    {{ csrf_field(csrf_token) }}
+    <button class="btn btn-danger" type="submit">Delete</button>
+    <a class="btn btn-outline-secondary" href="{{ url_for('expenses.index') }}">Cancel</a>
+  </form>
+</section>
+{% endblock %}

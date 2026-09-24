@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<section class="public-card">
+  <h1>Create an account</h1>
+  {% if errors %}
+    <div class="alert alert-warning">
+      {% for error in errors %}<div>{{ error }}</div>{% endfor %}
+    </div>
+  {% endif %}
+  <form method="post" data-loading>
+    {% from "_macros.html" import csrf_field %}
+    {{ csrf_field(csrf_token) }}
+    <label class="form-label" for="name">Name</label>
+    <input class="form-control mb-3" id="name" type="text" name="name" value="{{ form.name }}" autocomplete="name" required>
+    <label class="form-label" for="email">Email</label>
+    <input class="form-control mb-3" id="email" type="email" name="email" value="{{ form.email }}" autocomplete="username" required>
+    <label class="form-label" for="password">Password</label>
+    <input class="form-control mb-1" id="password" type="password" name="password" autocomplete="new-password" minlength="8" required>
+    <p class="field-hint">At least 8 characters. Stored as a hash, not as plain text.</p>
+    <button class="btn btn-primary w-100" type="submit">Register</button>
+  </form>
+  <p class="form-foot">Already registered? <a href="{{ url_for('auth.login') }}">Log in</a></p>
+</section>
+{% endblock %}

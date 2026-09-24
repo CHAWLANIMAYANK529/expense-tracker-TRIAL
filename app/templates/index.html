@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Expense Tracker 2.0{% endblock %}
+{% block content %}
+<section class="public-card public-card-wide">
+  <p class="eyebrow">Personal finance analytics</p>
+  <h1>Expense Tracker 2.0</h1>
+  <p class="lead">Record spending, set a monthly budget, and read patterns in your own transactions. Every total on the dashboard is calculated from the database.</p>
+  <div class="d-flex flex-wrap gap-2 mt-4">
+    <a class="btn btn-primary" href="{{ url_for('auth.register') }}">Create an account</a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('auth.login') }}">Log in</a>
+  </div>
+  <ul class="feature-list">
+    <li>Expenses with category, payment method, and notes</li>
+    <li>Monthly budget with a warning at 80%</li>
+    <li>CSV import with a preview, and CSV export</li>
+    <li>Detected recurring expenses and unusual spending</li>
+  </ul>
+</section>
+{% endblock %}

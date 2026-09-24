@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Analytics{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Analytics</p>
+    <h1>{{ start | short_date }} – {{ end | short_date }}</h1>
+  </div>
+</header>
+
+<section class="panel">
+  <form method="get" class="row g-3 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label" for="period">Period</label>
+      <select class="form-select" id="period" name="period">
+        {% for value, label in period_options %}
+          <option value="{{ value }}" {% if preset == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="start">Custom start</label>
+      <input class="form-control" id="start" type="date" name="start" value="{{ start_text }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="end">Custom end</label>
+      <input class="form-control" id="end" type="date" name="end" value="{{ end_text }}">
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-primary w-100" type="submit">Update</button>
+    </div>
+    <p class="col-12 page-note mb-0">Custom dates are used only when the period is “Custom date range”. This month, last 3 months, last 6 months, and this year end today.</p>
+  </form>
+</section>
+
+<section class="stat-grid mt-4">
+  <article class="stat-card">
+    <p class="stat-label">Total spending</p>
+    <p class="stat-value" id="analytics-total">{{ summary.total | inr }}</p>
+  </article>
+  <article class="stat-card">
+    <p class="stat-label">Transactions</p>
+    <p class="stat-value" id="analytics-count">{{ summary.count }}</p>
+  </article>
+  <article class="stat-card">
+    <p class="stat-label">Average transaction</p>
+    <p class="stat-value" id="analytics-average">{{ summary.average_transaction | inr }}</p>
+  </article>
+  <article class="stat-card">
+    <p class="stat-label">Average daily</p>
+    <p class="stat-value">{{ summary.average_daily | inr }}</p>
+    <p class="stat-hint">{{ summary.days }} days</p>
+  </article>
+  <article class="stat-card">
+    <p class="stat-label">Average monthly</p>
+    <p class="stat-value">{{ summary.average_monthly | inr }}</p>
+    <p class="stat-hint">{{ summary.month_count }} month{{ '' if summary.month_count == 1 else 's' }}</p>
+  </article>
+  <article class="stat-card">
+    <p class="stat-label">Largest transaction</p>
+    <p class="stat-value" id="analytics-largest">{{ summary.largest.amount | inr if summary.largest else '—' }}</p>
+    <p class="stat-hint">{{ summary.largest.description if summary.largest else 'None in this period' }}</p>
+  </article>
+  <article class="stat-card">
+    <p class="stat-label">Top category</p>
+    <p class="stat-value" id="analytics-top-category">{{ summary.top_category.category if summary.top_category else '—' }}</p>
+    <p class="stat-hint">{{ summary.top_category.total | inr if summary.top_category else 'None in this period' }}</p>
+  </article>
+</section>
+
+<section class="panel mt-4">
+  <div class="row g-4">
+    <div class="col-lg-5">
+      <h2 class="chart-title">Category distribution</h2>
+      {% if summary.categories %}
+        <canvas id="categoryChart" height="220"></canvas>
+      {% else %}
+        <p class="empty-copy">No spending in this period.</p>
+      {% endif %}
+    </div>
+    <div class="col-lg-7">
+      <h2 class="chart-title">Monthly trend</h2>
+      {% if summary.months | sum(attribute='total') > 0 %}
+        <canvas id="monthChart" height="220"></canvas>
+      {% else %}
+        <p class="empty-copy">No spending in this period.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="panel mt-4">
+  <h2>Category totals</h2>
+  {% if summary.categories %}
+  <table class="table align-middle mb-0">
+    <thead><tr><th>Category</th><th class="text-end">Amount</th><th class="text-end">Share</th></tr></thead>
+    <tbody>
+      {% for row in summary.categories %}
+      <tr>
+        <td>{{ row.category }}</td>
+        <td class="text-end amount">{{ row.total | inr }}</td>
+        <td class="text-end">{{ row.share }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p class="empty-copy mb-0">Category totals appear after you add expenses in this range.</p>
+  {% endif %}
+</section>
+
+<section class="panel mt-4">
+  <h2>Unusual spending</h2>
+  <p class="page-note">{{ unusual_explanation }}</p>
+  {% if unusual %}
+    {% for item in unusual %}
+    <article class="unusual-card">
+      <h3>{{ item.category }}</h3>
+      <p class="mb-1">{{ 'Higher than your historical average' if item.direction == 'higher' else 'Lower than your historical average' }}</p>
+      <dl class="unusual-grid">
+        <div><dt>This month</dt><dd>{{ item.current | inr }}</dd></div>
+        <div><dt>Previous average</dt><dd>{{ item.average | inr }}</dd></div>
+        <div><dt>Difference</dt><dd>{{ '%+d' | format(item.difference_percent) }}%</dd></div>
+      </dl>
+      <p class="page-note mb-0">Average of {{ item.months_compared }} earlier month{{ '' if item.months_compared == 1 else 's' }} with spending in {{ item.category }}.</p>
+    </article>
+    {% endfor %}
+  {% else %}
+    <p class="empty-copy">Nothing crossed the 40% and ₹500 thresholds this month.</p>
+  {% endif %}
+</section>
+
+<section class="panel mt-4">
+  <h2>Detected recurring expenses</h2>
+  <p class="page-note">{{ recurring_explanation }}</p>
+  {% if recurring %}
+  <ul class="insight-list">
+    {% for item in recurring %}
+    <li>
+      <span>{{ item.description }} <small>{{ item.occurrences }} times · last {{ item.last_date | short_date }}</small></span>
+      <span class="text-end"><strong>{{ item.amount | inr }}</strong><small>{{ item.label }}</small></span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+    <p class="empty-copy mb-0">No repeated pattern met the rules yet.</p>
+  {% endif %}
+</section>
+
+<script id="chart-data" type="application/json">{{ {
+  "category_labels": summary.categories | map(attribute='category') | list,
+  "category_values": summary.categories | map(attribute='total') | list,
+  "category_colors": summary.category_colors,
+  "month_labels": summary.months | map(attribute='label') | list,
+  "month_values": summary.months | map(attribute='total') | list
+} | tojson }}</script>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const node = document.getElementById("chart-data");
+    if (!node || !window.renderFinanceCharts) return;
+    window.renderFinanceCharts(JSON.parse(node.textContent));
+  });
+</script>
+{% endblock %}

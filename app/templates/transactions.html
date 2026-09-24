@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf_field %}
+{% block title %}Transactions{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Transactions</p>
+    <h1>Expenses</h1>
+    <p class="page-note">{{ total }} matching transaction{{ '' if total == 1 else 's' }}.</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('expenses.new_expense') }}">Add expense</a>
+</header>
+
+<section class="panel">
+  <form method="get" class="row g-3 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label" for="search">Search description or notes</label>
+      <input class="form-control" id="search" type="text" name="search" value="{{ filters.search }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="category">Category</label>
+      <select class="form-select" id="category" name="category">
+        <option value="">All categories</option>
+        {% for category in categories %}
+          <option value="{{ category.id }}" {% if filters.category_id == category.id %}selected{% endif %}>{{ category.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="payment_method">Payment method</label>
+      <select class="form-select" id="payment_method" name="payment_method">
+        <option value="">Any method</option>
+        {% for method in payment_methods %}
+          <option value="{{ method }}" {% if filters.payment_method == method %}selected{% endif %}>{{ method }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="date_from">From</label>
+      <input class="form-control" id="date_from" type="date" name="date_from" value="{{ filters.date_from or '' }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="date_to">To</label>
+      <input class="form-control" id="date_to" type="date" name="date_to" value="{{ filters.date_to or '' }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label" for="amount_min">Min amount</label>
+      <input class="form-control" id="amount_min" type="number" min="0" step="0.01" name="amount_min" value="{{ filters.amount_min if filters.amount_min is not none else '' }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label" for="amount_max">Max amount</label>
+      <input class="form-control" id="amount_max" type="number" min="0" step="0.01" name="amount_max" value="{{ filters.amount_max if filters.amount_max is not none else '' }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label" for="sort">Sort</label>
+      <select class="form-select" id="sort" name="sort">
+        <option value="date_desc" {% if filters.sort == 'date_desc' %}selected{% endif %}>Newest</option>
+        <option value="date_asc" {% if filters.sort == 'date_asc' %}selected{% endif %}>Oldest</option>
+        <option value="amount_desc" {% if filters.sort == 'amount_desc' %}selected{% endif %}>Amount high</option>
+        <option value="amount_asc" {% if filters.sort == 'amount_asc' %}selected{% endif %}>Amount low</option>
+      </select>
+    </div>
+    <div class="col-12 d-flex gap-2">
+      <button class="btn btn-primary" type="submit">Apply filters</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('expenses.index') }}">Reset</a>
+    </div>
+  </form>
+</section>
+
+<section class="panel mt-4">
+  <div class="panel-head">
+    <h2>Export CSV</h2>
+  </div>
+  <form method="get" action="{{ url_for('imports.export_csv') }}" class="row g-3 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label" for="export_from">From</label>
+      <input class="form-control" id="export_from" type="date" name="date_from" value="{{ filters.date_from or '' }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="export_to">To</label>
+      <input class="form-control" id="export_to" type="date" name="date_to" value="{{ filters.date_to or '' }}">
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-outline-primary" type="submit">Export CSV</button>
+    </div>
+    <p class="col-12 page-note mb-0">Leave the dates empty to export every expense. Columns: Date, Description, Amount, Category, Payment Method, Notes.</p>
+  </form>
+</section>
+
+<section class="panel mt-4">
+  {% if expenses %}
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th><a href="{{ sort_urls.date_desc if filters.sort != 'date_desc' else sort_urls.date_asc }}">Date</a></th>
+          <th>Description</th>
+          <th>Category</th>
+          <th>Payment</th>
+          <th class="text-end"><a href="{{ sort_urls.amount_desc if filters.sort != 'amount_desc' else sort_urls.amount_asc }}">Amount</a></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for expense in expenses %}
+        <tr>
+          <td><time datetime="{{ expense.date }}">{{ expense.date | short_date }}</time></td>
+          <td>
+            {{ expense.description }}
+            {% if expense.notes %}<div class="note-line">{{ expense.notes }}</div>{% endif %}
+          </td>
+          <td>{{ expense.category }}</td>
+          <td>{{ expense.payment_method }}</td>
+          <td class="text-end amount">{{ expense.amount | inr }}</td>
+          <td class="text-end text-nowrap">
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('expenses.edit', expense_id=expense.id) }}">Edit</a>
+            <form class="d-inline" method="post" action="{{ url_for('expenses.delete', expense_id=expense.id) }}" onsubmit="return confirm('Delete this expense?');">
+              {{ csrf_field(csrf_token) }}
+              <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if pages > 1 %}
+  <nav class="pager" aria-label="Pagination">
+    {% if prev_url %}<a href="{{ prev_url }}">Previous</a>{% else %}<span>Previous</span>{% endif %}
+    <span>Page {{ page }} of {{ pages }}</span>
+    {% if next_url %}<a href="{{ next_url }}">Next</a>{% else %}<span>Next</span>{% endif %}
+  </nav>
+  {% endif %}
+  {% else %}
+    <p class="empty-copy mb-0">No expenses match these filters. <a href="{{ url_for('expenses.new_expense') }}">Add an expense</a> or <a href="{{ url_for('imports.index') }}">import a CSV</a>.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Page not found{% endblock %}
+{% block content %}
+<section class="panel form-panel">
+  <h1>Page not found</h1>
+  <p>That page or expense does not exist in your account.</p>
+  <a class="btn btn-primary" href="{{ url_for('dashboard.index') if current_user else url_for('auth.home') }}">Go back</a>
+</section>
+{% endblock %}
